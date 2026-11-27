@@ -310,7 +310,7 @@ private fun ScreenIcon(screen: StudyScreen) {
 }
 
 @Composable
-private fun PlannerScreen(
+private fun HomeScreen(
     tasks: List<TaskEntity>,
     sessions: List<com.saad.studymate.data.StudySessionEntity>,
     subjects: List<SubjectEntity>,
@@ -718,6 +718,162 @@ private fun PlannerScreen(
     }
 }
 
+
+@Composable
+private fun PlannerScreen(
+    tasks: List<TaskEntity>,
+    subjects: List<SubjectEntity>,
+    weeklyGoals: List<WeeklyGoalEntity>,
+    onSaveGoal: (Long, Int) -> Unit,
+    onAddTask: (String, Long?, Int, Long) -> Unit,
+    onToggleTask: (Long, Boolean) -> Unit,
+    onDeleteTask: (Long) -> Unit
+) {
+    var showAdd by remember { mutableStateOf(false) }
+    var showGoal by remember { mutableStateOf(false) }
+
+    ContentColumn {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Your study plan",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Keep the next action clear and achievable.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Button(onClick = { showAdd = true }) {
+                Text("+ Task")
+            }
+        }
+
+        val done = tasks.count { it.isCompleted }
+        val ratio = if (tasks.isEmpty()) 0f else done.toFloat() / tasks.size
+
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Task completion", fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.weight(1f))
+                    Text("$done / ${tasks.size}")
+                }
+                LinearProgressIndicator(
+                    progress = { ratio },
+                    modifier = Modifier.fillMaxWidth().height(8.dp),
+                    strokeCap = StrokeCap.Round
+                )
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Weekly targets",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = { showGoal = true }) {
+                Text("+ Goal")
+            }
+        }
+
+        if (weeklyGoals.isEmpty()) {
+            Text(
+                "Set a weekly target for a subject. Completed focus sessions will add to its progress automatically.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
+        } else {
+            weeklyGoals.forEach { goal ->
+                val subject = subjects.firstOrNull {
+                    it.id == goal.subjectId
+                }?.name ?: "Subject"
+
+                val fraction = (
+                    goal.completedMinutes.toFloat() /
+                    goal.targetMinutes.coerceAtLeast(1)
+                ).coerceIn(0f, 1f)
+
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(subject, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${goal.completedMinutes}/${goal.targetMinutes} min",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                        LinearProgressIndicator(
+                            progress = { fraction },
+                            modifier = Modifier.fillMaxWidth().height(7.dp),
+                            strokeCap = StrokeCap.Round
+                        )
+                    }
+                }
+            }
+        }
+
+        Text(
+            "All tasks",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        if (tasks.isEmpty()) {
+            EmptyState(
+                "No tasks yet",
+                "Add your first task and assign it to a subject."
+            )
+        }
+
+        tasks.forEach { task ->
+            TaskRow(task, onToggleTask, onDeleteTask)
+        }
+    }
+
+    if (showAdd) {
+        AddTaskDialog(
+            subjects = subjects,
+            onDismiss = { showAdd = false },
+            onSave = { title, subject, priority, dueAtMillis ->
+                onAddTask(title, subject, priority, dueAtMillis)
+                showAdd = false
+            }
+        )
+    }
+
+    if (showGoal) {
+        AddWeeklyGoalDialog(
+            subjects = subjects,
+            onDismiss = { showGoal = false },
+            onSave = { subjectId, target ->
+                onSaveGoal(subjectId, target)
+                showGoal = false
+            }
+        )
+    }
+}
 @Composable
 private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPreferences) {
     val context = androidx.compose.ui.platform.LocalContext.current
