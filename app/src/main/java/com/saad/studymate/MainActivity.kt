@@ -96,7 +96,7 @@ import com.saad.studymate.data.StudyNoteEntity
 import com.saad.studymate.data.StudyPreferences
 import com.saad.studymate.data.SubjectEntity
 import com.saad.studymate.data.TaskEntity
-import com.saad.studymate.timer.PomodoroTimerService
+import com.saad.studymate.timer.FloatingPomodoroService
 import com.saad.studymate.timer.TimerSnapshot
 import com.saad.studymate.timer.TimerStore
 import com.saad.studymate.widget.DailyStudyTargetWidget
@@ -131,7 +131,14 @@ private enum class StudyScreen(val label: String) {
 @Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 private fun StudyMateRoot() {
-    val context = androidx.compose.ui.platform.LocalContext.current
+       val overlayPermissionLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        ) {
+            if (android.provider.Settings.canDrawOverlays(context)) {
+                FloatingPomodoroService.show(context)
+            }
+        }
     val database = remember { StudyMateDatabase.get(context) }
     val preferences = remember { StudyPreferences(context) }
     val tasks by database.taskDao().observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
@@ -604,7 +611,24 @@ private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPrefere
             }
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {        OutlinedButton(
+            onClick = {
+                if (android.provider.Settings.canDrawOverlays(context)) {
+                    FloatingPomodoroService.show(context)
+                } else {
+                    val intent = android.content.Intent(
+                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:${context.packageName}")
+                    )
+                    overlayPermissionLauncher.launch(intent)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Outlined.Timer, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Enable Floating Timer")
+        }
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(10.dp))
