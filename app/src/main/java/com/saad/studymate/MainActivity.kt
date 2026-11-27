@@ -306,12 +306,11 @@ private fun ScreenIcon(screen: StudyScreen) {
         StudyScreen.MORE -> Icons.Outlined.MoreHoriz
     }
     Icon(icon, contentDescription = screen.label)
+    }
 }
 
 @Composable
-
-@Composable
-private fun HomeScreen(
+private fun PlannerScreen(
     tasks: List<TaskEntity>,
     sessions: List<com.saad.studymate.data.StudySessionEntity>,
     subjects: List<SubjectEntity>,
