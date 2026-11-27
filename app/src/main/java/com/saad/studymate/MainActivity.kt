@@ -632,7 +632,17 @@ private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPrefere
             Spacer(Modifier.width(8.dp))
             Text("Enable Floating Timer")
         }
+              Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Timer tip", fontWeight = FontWeight.SemiBold)
+                    Text("A completed focus timer is saved to your local study history. Keep notifications enabled to see the countdown outside the app.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
+    }
     LaunchedEffect(focusMinutes, shortMinutes, longMinutes) {
         preferences.setDurations(focusMinutes, shortMinutes, longMinutes)
     }
