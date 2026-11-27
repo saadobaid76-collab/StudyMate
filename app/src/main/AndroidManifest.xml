@@ -50,19 +50,15 @@
 
         <service
             android:name=".timer.PomodoroTimerService"
-            <service
-    android:name=".timer.FloatingPomodoroService"
-    android:exported="false"
-    android:foregroundServiceType="specialUse">
-    <property
-        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-        android:value="User-started floating study timer overlay." />
-</service>
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-started study countdown timer with an ongoing notification." />
         </service>
+
+        <service
+            android:name=".timer.FloatingPomodoroService"
+            android:exported="false" />
     </application>
 </manifest>
