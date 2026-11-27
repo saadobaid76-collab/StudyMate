@@ -36,12 +36,7 @@ object DailyGoalProgress {
         val start = startOfDay(dayMillis)
         val end = addDays(start, 1)
         val planned = tasks.filter { it.dueAtMillis >= start && it.dueAtMillis < end }
-        val completed = planned.count { task ->
-            task.isCompleted && (
-                task.planned.count { task -> task.isCompleted } == 0L ||
-                    (task.planned.count { task -> task.isCompleted } >= start && task.planned.count { task -> task.isCompleted } < end)
-                )
-        }
+        val completed = planned.count { it.isCompleted }
         return DailyGoalDay(start, planned.size, completed)
     }
 
