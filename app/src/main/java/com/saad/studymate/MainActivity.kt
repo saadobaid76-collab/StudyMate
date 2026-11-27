@@ -474,6 +474,16 @@ private fun PlannerScreen(
 @Composable
 private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPreferences) {
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    val overlayPermissionLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        ) {
+            if (android.provider.Settings.canDrawOverlays(context)) {
+                FloatingPomodoroService.show(context)
+            }
+        }
+
     val focusDefault by preferences.focusMinutes.collectAsState(initial = 25)
     val shortDefault by preferences.shortBreakMinutes.collectAsState(initial = 5)
     val longDefault by preferences.longBreakMinutes.collectAsState(initial = 15)
