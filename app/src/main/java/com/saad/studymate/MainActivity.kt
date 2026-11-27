@@ -610,11 +610,7 @@ private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPrefere
                         Spacer(Modifier.width(6.dp))
                         Text("Reset")
                     }
-                }
-            }
-        }
-
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {        OutlinedButton(
+        OutlinedButton(
             onClick = {
                 if (android.provider.Settings.canDrawOverlays(context)) {
                     FloatingPomodoroService.show(context)
@@ -632,6 +628,8 @@ private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPrefere
             Spacer(Modifier.width(8.dp))
             Text("Enable Floating Timer")
         }
+
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(10.dp))
@@ -641,8 +639,6 @@ private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPrefere
                 }
             }
         }
-    }
-
     LaunchedEffect(focusMinutes, shortMinutes, longMinutes) {
         preferences.setDurations(focusMinutes, shortMinutes, longMinutes)
     }
