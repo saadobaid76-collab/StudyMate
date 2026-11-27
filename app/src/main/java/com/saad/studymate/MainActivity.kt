@@ -722,7 +722,6 @@ private fun PlannerScreen(
 
 @Composable
 
-@Composable
 private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPreferences) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
