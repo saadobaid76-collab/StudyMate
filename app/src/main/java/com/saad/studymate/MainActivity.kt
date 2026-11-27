@@ -623,14 +623,6 @@ private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPrefere
                         android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         android.net.Uri.parse("package:${context.packageName}")
                     )
-            onClick = {
-                if (android.provider.Settings.canDrawOverlays(context)) {
-                    FloatingPomodoroService.show(context)
-                } else {
-                    val intent = android.content.Intent(
-                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        android.net.Uri.parse("package:${context.packageName}")
-                    )
                     overlayPermissionLauncher.launch(intent)
                 }
             },
@@ -640,7 +632,6 @@ private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPrefere
             Spacer(Modifier.width(8.dp))
             Text("Enable Floating Timer")
         }
-
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
