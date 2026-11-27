@@ -1,20 +1,29 @@
-
 package com.saad.studymate.timer
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import com.saad.studymate.MainActivity
+import com.saad.studymate.R
 import kotlin.math.roundToInt
 
 class FloatingPomodoroService : Service() {
@@ -29,11 +38,13 @@ class FloatingPomodoroService : Service() {
     private val updater = object : Runnable {
         override fun run() {
             val state = TimerStore.snapshot(this@FloatingPomodoroService)
+
             timerText?.text = String.format(
                 "%02d:%02d",
                 state.remainingMillis / 60000,
                 (state.remainingMillis % 60000) / 1000
             )
+
             if (floatingView != null) {
                 handler.postDelayed(this, 500)
             }
@@ -43,26 +54,39 @@ class FloatingPomodoroService : Service() {
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        createNotificationChannel()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
+
+        startAsForeground()
+
         when (intent?.action) {
             ACTION_HIDE -> {
                 removeOverlay()
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
-            else -> showOverlay()
+
+            else -> {
+                if (Settings.canDrawOverlays(this)) {
+                    showOverlay()
+                } else {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+            }
         }
+
         return START_NOT_STICKY
     }
 
     private fun showOverlay() {
         if (floatingView != null) return
-
-        if (!android.provider.Settings.canDrawOverlays(this)) {
-            stopSelf()
-            return
-        }
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -76,10 +100,10 @@ class FloatingPomodoroService : Service() {
             textSize = 13f
             setTextColor(0xFF6EE7C8.toInt())
             gravity = Gravity.CENTER
+            setPadding(8, 8, 8, 8)
         }
 
         timerText = TextView(this).apply {
-            text = "25:00"
             textSize = 30f
             setTextColor(0xFFFFFFFF.toInt())
             gravity = Gravity.CENTER
@@ -105,19 +129,30 @@ class FloatingPomodoroService : Service() {
 
         addButton("Pause") {
             val state = TimerStore.snapshot(this)
+
             if (state.isRunning) {
-                PomodoroTimerService.command(this, PomodoroTimerService.ACTION_PAUSE)
+                PomodoroTimerService.command(
+                    this,
+                    PomodoroTimerService.ACTION_PAUSE
+                )
             } else if (state.isPaused) {
-                PomodoroTimerService.command(this, PomodoroTimerService.ACTION_RESUME)
+                PomodoroTimerService.command(
+                    this,
+                    PomodoroTimerService.ACTION_RESUME
+                )
             }
         }
 
         addButton("Reset") {
-            PomodoroTimerService.command(this, PomodoroTimerService.ACTION_RESET)
+            PomodoroTimerService.command(
+                this,
+                PomodoroTimerService.ACTION_RESET
+            )
         }
 
         addButton("Close") {
             removeOverlay()
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
 
@@ -128,10 +163,7 @@ class FloatingPomodoroService : Service() {
         val layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else
-                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
@@ -140,13 +172,19 @@ class FloatingPomodoroService : Service() {
             y = 180
         }
 
-        root.setOnTouchListener(object : View.OnTouchListener {
+        // Drag the floating timer using its heading.
+        heading.setOnTouchListener(object : View.OnTouchListener {
+
             private var startX = 0
             private var startY = 0
             private var touchX = 0f
             private var touchY = 0f
 
-            override fun onTouch(view: View, event: MotionEvent): Boolean {
+            override fun onTouch(
+                view: View,
+                event: MotionEvent
+            ): Boolean {
+
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         startX = layoutParams.x
@@ -155,34 +193,106 @@ class FloatingPomodoroService : Service() {
                         touchY = event.rawY
                         return true
                     }
+
                     MotionEvent.ACTION_MOVE -> {
-                        layoutParams.x = startX + (event.rawX - touchX).roundToInt()
-                        layoutParams.y = startY + (event.rawY - touchY).roundToInt()
-                        windowManager.updateViewLayout(root, layoutParams)
+                        layoutParams.x =
+                            startX + (event.rawX - touchX).roundToInt()
+
+                        layoutParams.y =
+                            startY + (event.rawY - touchY).roundToInt()
+
+                        try {
+                            windowManager.updateViewLayout(
+                                root,
+                                layoutParams
+                            )
+                        } catch (_: Exception) {
+                        }
+
                         return true
                     }
+
+                    MotionEvent.ACTION_UP -> return true
                 }
+
                 return false
             }
         })
 
         floatingView = root
         params = layoutParams
-        windowManager.addView(root, layoutParams)
-        handler.post(updater)
+
+        try {
+            windowManager.addView(root, layoutParams)
+            handler.post(updater)
+        } catch (_: Exception) {
+            floatingView = null
+            timerText = null
+            params = null
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
     }
 
     private fun removeOverlay() {
         handler.removeCallbacks(updater)
+
         floatingView?.let {
             try {
                 windowManager.removeView(it)
             } catch (_: Exception) {
             }
         }
+
         floatingView = null
         timerText = null
         params = null
+    }
+
+    private fun startAsForeground() {
+        val notification = buildNotification()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun buildNotification(): Notification {
+        val openIntent = Intent(this, MainActivity::class.java)
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            501,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_studymate)
+            .setContentTitle("StudyMate Floating Timer")
+            .setContentText("Floating study timer is active")
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
+    private fun createNotificationChannel() {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Floating Pomodoro",
+            NotificationManager.IMPORTANCE_LOW
+        )
+
+        getSystemService(NotificationManager::class.java)
+            .createNotificationChannel(channel)
     }
 
     override fun onDestroy() {
@@ -193,22 +303,32 @@ class FloatingPomodoroService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
-        const val ACTION_SHOW = "com.saad.studymate.timer.FLOAT_SHOW"
-        const val ACTION_HIDE = "com.saad.studymate.timer.FLOAT_HIDE"
+
+        const val ACTION_SHOW =
+            "com.saad.studymate.timer.FLOAT_SHOW"
+
+        const val ACTION_HIDE =
+            "com.saad.studymate.timer.FLOAT_HIDE"
+
+        private const val CHANNEL_ID = "studymate_floating_timer"
+        private const val NOTIFICATION_ID = 4108
 
         fun show(context: Context) {
-            context.startService(
-                Intent(context, FloatingPomodoroService::class.java)
-                    .setAction(ACTION_SHOW)
-            )
+            val intent = Intent(
+                context,
+                FloatingPomodoroService::class.java
+            ).setAction(ACTION_SHOW)
+
+            ContextCompat.startForegroundService(context, intent)
         }
 
         fun hide(context: Context) {
-            context.startService(
-                Intent(context, FloatingPomodoroService::class.java)
-                    .setAction(ACTION_HIDE)
-            )
+            val intent = Intent(
+                context,
+                FloatingPomodoroService::class.java
+            ).setAction(ACTION_HIDE)
+
+            ContextCompat.startForegroundService(context, intent)
         }
     }
 }
-
