@@ -307,7 +307,6 @@ private fun ScreenIcon(screen: StudyScreen) {
     }
     Icon(icon, contentDescription = screen.label)
     }
-}
 
 @Composable
 private fun HomeScreen(
