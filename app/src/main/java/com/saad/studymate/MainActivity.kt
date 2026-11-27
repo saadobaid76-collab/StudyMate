@@ -309,6 +309,8 @@ private fun ScreenIcon(screen: StudyScreen) {
 }
 
 @Composable
+
+@Composable
 private fun HomeScreen(
     tasks: List<TaskEntity>,
     sessions: List<com.saad.studymate.data.StudySessionEntity>,
@@ -319,85 +321,335 @@ private fun HomeScreen(
 ) {
     val todayStart = remember { startOfTodayMillis() }
     val tomorrowStart = remember { startOfDayOffsetMillis(1) }
-    val todayTasks = tasks.filter { it.dueAtMillis >= todayStart && it.dueAtMillis < tomorrowStart }
-    val todayFocus = sessions.filter { it.startedAtMillis >= todayStart }.sumOf { it.focusMinutes }
+
+    val todayTasks = tasks.filter {
+        it.dueAtMillis >= todayStart && it.dueAtMillis < tomorrowStart
+    }
+
+    val todayFocus = sessions
+        .filter { it.startedAtMillis >= todayStart }
+        .sumOf { it.focusMinutes }
+
     val completedToday = todayTasks.count { it.isCompleted }
     val pendingToday = todayTasks.count { !it.isCompleted }
     val goalStreak = dailyTaskStreak(tasks)
-    val taskProgress = if (todayTasks.isEmpty()) 0f else completedToday.toFloat() / todayTasks.size
-    val advice = remember(tasks, sessions, subjects) { StudyIntelligenceEngine.analyze(sessions, tasks, subjects) }
+
+    val taskProgress = if (todayTasks.isEmpty()) {
+        0f
+    } else {
+        completedToday.toFloat() / todayTasks.size
+    }
+
+    val advice = remember(tasks, sessions, subjects) {
+        StudyIntelligenceEngine.analyze(sessions, tasks, subjects)
+    }
+
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val greeting = when {
+        hour < 12 -> "Good morning"
+        hour < 17 -> "Good afternoon"
+        else -> "Good evening"
+    }
+
+    val currentDate = remember {
+        SimpleDateFormat("EEEE, dd MMMM", Locale.getDefault())
+            .format(Date())
+    }
 
     ContentColumn {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Card(modifier = Modifier.weight(1.15f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Daily goal", style = MaterialTheme.typography.titleMedium)
+
+        // HEADER
+        Column(
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(
+                greeting + " 👋",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                currentDate,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text(
+                "Ready to make today productive?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        // DAILY PROGRESS DASHBOARD
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            "DAILY PROGRESS",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Text(
+                            "$completedToday / ${todayTasks.size}",
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Text(
+                            if (todayTasks.isEmpty()) {
+                                "Plan your study day"
+                            } else if (pendingToday == 0) {
+                                "All targets completed! 🎉"
+                            } else {
+                                "$pendingToday tasks remaining"
+                            },
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier.size(94.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            progress = { taskProgress },
+                            modifier = Modifier.fillMaxSize(),
+                            strokeWidth = 9.dp,
+                            strokeCap = StrokeCap.Round,
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surface.copy(
+                                alpha = 0.5f
+                            )
+                        )
+
+                        Text(
+                            "${(taskProgress * 100).roundToInt()}%",
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                Divider(
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                        alpha = 0.15f
+                    )
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        if (todayTasks.isEmpty()) "Plan your day" else "$completedToday / ${todayTasks.size}",
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        "🔥  $goalStreak day streak",
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    Text(
-                        if (todayTasks.isEmpty()) "Add today's study tasks" else if (pendingToday == 0) "All targets complete ✓" else "$pendingToday tasks remaining",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    LinearProgressIndicator(
-                        progress = { taskProgress },
-                        modifier = Modifier.fillMaxWidth().height(8.dp),
-                        strokeCap = StrokeCap.Round
-                    )
-                    Text("🔥  $goalStreak day streak", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+
+                    Spacer(Modifier.weight(1f))
+
+                    TextButton(onClick = onOpenPlanner) {
+                        Text("View plan")
+                    }
                 }
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatCard("Focused", formatMinutes(todayFocus), "◷")
-                StatCard("Left today", pendingToday.toString(), "☷")
+        }
+
+        // QUICK STATS
+        Text(
+            "Your overview",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(Modifier.weight(1f)) {
+                StatCard("Focus time", formatMinutes(todayFocus), "◷")
+            }
+
+            Box(Modifier.weight(1f)) {
+                StatCard("Remaining", pendingToday.toString(), "☷")
+            }
+
+            Box(Modifier.weight(1f)) {
                 StatCard("Planned", todayTasks.size.toString(), "✓")
             }
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        // AI STUDY COACH
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+
                     Spacer(Modifier.width(8.dp))
-                    Text("Today's AI study cue", fontWeight = FontWeight.SemiBold)
+
+                    Text(
+                        "AI Study Coach",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
                     Spacer(Modifier.weight(1f))
-                    AssistChip(onClick = onOpenFocus, label = { Text("Start focus") })
+
+                    Text(
+                        "SMART INSIGHT",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
-                Text(advice.headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(advice.explanation, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
-                Text("Suggested rhythm: ${advice.focusMinutes} min focus · ${advice.breakMinutes} min break", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+
+                Text(
+                    advice.headline,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    advice.explanation,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Divider()
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "⏱ ${advice.focusMinutes} min focus",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+
+                    Spacer(Modifier.width(14.dp))
+
+                    Text(
+                        "☕ ${advice.breakMinutes} min break",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+
+                Button(
+                    onClick = onOpenFocus,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Outlined.PlayArrow,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Start focus session")
+                }
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Today's tasks", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        // TODAY'S TASKS
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Today's study plan",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = onOpenPlanner) { Text("See all") }
+
+            TextButton(onClick = onOpenPlanner) {
+                Text("See all")
+            }
         }
-        val visibleTasks = todayTasks.filter { !it.isCompleted }.take(4) + todayTasks.filter { it.isCompleted }.take(2)
+
+        val visibleTasks =
+            todayTasks.filter { !it.isCompleted }.take(4) +
+            todayTasks.filter { it.isCompleted }.take(2)
+
         if (visibleTasks.isEmpty()) {
-            EmptyState("Your task list is clear", "Add a task in Planner to give your next study session a direction.")
+            EmptyState(
+                "Your task list is clear",
+                "Add a task in Planner to organize your study day."
+            )
         } else {
-            visibleTasks.forEach { task -> TaskRow(task, onToggleTask, null) }
+            visibleTasks.forEach { task ->
+                TaskRow(task, onToggleTask, null)
+            }
         }
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Need a focused start?", fontWeight = FontWeight.SemiBold)
-                    Text("One session is enough to begin.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+
+        // POMODORO SHORTCUT
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Text(
+                        "Ready to focus? 🍅",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        "Start a Pomodoro session and stay on track.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Button(onClick = onOpenFocus) { Text("Open timer") }
+
+                Button(onClick = onOpenFocus) {
+                    Text("Start")
+                }
             }
         }
     }
 }
 
-@Composable
-private fun PlannerScreen(
     tasks: List<TaskEntity>,
     subjects: List<SubjectEntity>,
     weeklyGoals: List<WeeklyGoalEntity>,
