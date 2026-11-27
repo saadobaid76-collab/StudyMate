@@ -97,6 +97,7 @@ import com.saad.studymate.data.StudyPreferences
 import com.saad.studymate.data.SubjectEntity
 import com.saad.studymate.data.TaskEntity
 import com.saad.studymate.timer.FloatingPomodoroService
+import com.saad.studymate.timer.PomodoroTimerService
 import com.saad.studymate.timer.TimerSnapshot
 import com.saad.studymate.timer.TimerStore
 import com.saad.studymate.widget.DailyStudyTargetWidget
