@@ -131,8 +131,10 @@ private enum class StudyScreen(val label: String) {
 
 @Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-private fun StudyMateRoot() {
-
+private fun StudyMateRoot() {   
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
     val database = remember { StudyMateDatabase.get(context) }
     val preferences = remember { StudyPreferences(context) }
     val tasks by database.taskDao().observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
