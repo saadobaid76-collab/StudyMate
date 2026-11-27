@@ -610,12 +610,19 @@ private fun FocusScreen(subjects: List<SubjectEntity>, preferences: StudyPrefere
                         Spacer(Modifier.width(6.dp))
                         Text("Reset")
                     }
-                         }
                 }
             }
-                    
-                    
-                    OutlinedButton(
+        }
+
+        OutlinedButton(
+            onClick = {
+                if (android.provider.Settings.canDrawOverlays(context)) {
+                    FloatingPomodoroService.show(context)
+                } else {
+                    val intent = android.content.Intent(
+                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:${context.packageName}")
+                    )
             onClick = {
                 if (android.provider.Settings.canDrawOverlays(context)) {
                     FloatingPomodoroService.show(context)
