@@ -131,14 +131,7 @@ private enum class StudyScreen(val label: String) {
 @Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 private fun StudyMateRoot() {
-       val overlayPermissionLauncher =
-        androidx.activity.compose.rememberLauncherForActivityResult(
-            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-        ) {
-            if (android.provider.Settings.canDrawOverlays(context)) {
-                FloatingPomodoroService.show(context)
-            }
-        }
+
     val database = remember { StudyMateDatabase.get(context) }
     val preferences = remember { StudyPreferences(context) }
     val tasks by database.taskDao().observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
