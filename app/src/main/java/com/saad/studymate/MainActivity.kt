@@ -651,7 +651,6 @@ private fun HomeScreen(
 @Composable
 private fun PlannerScreen(
     tasks: List<TaskEntity>,
-    tasks: List<TaskEntity>,
     subjects: List<SubjectEntity>,
     weeklyGoals: List<WeeklyGoalEntity>,
     onSaveGoal: (Long, Int) -> Unit,
