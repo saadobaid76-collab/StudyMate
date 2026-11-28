@@ -28,8 +28,12 @@
             android:name=".reminder.DailyGoalReminderReceiver"
             android:exported="false" />
 
+                <receiver
+            android:name=".reminder.SubjectStudyReminderReceiver"
+            android:exported="false" />
+
         <receiver
-            android:name=".reminder.DailyGoalReminderBootReceiver"
+            android:name=".reminder.SubjectStudyReminderBootReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
