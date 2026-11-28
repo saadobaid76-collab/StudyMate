@@ -1,5 +1,5 @@
 package com.saad.studymate
-
+import com.saad.studymate.reminder.SubjectStudyReminder
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -1341,3 +1341,151 @@ private fun startOfDate(time: Long): Long = Calendar.getInstance().apply {
     set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
 }.timeInMillis
 private fun parseHex(hex: String): Color = runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(Color(0xFF6EE7C8))
+
+@Composable
+private fun SubjectReminderSettings(subjects: List<SubjectEntity>) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val days = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "Subject Reminders ⏰",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Get notified 20 minutes before study time.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (subjects.isEmpty()) {
+                Text("Add subjects in your planner first.")
+            }
+
+            subjects.forEach { subject ->
+                SubjectReminderItem(
+                    subject = subject,
+                    days = days,
+                    onSave = { hour, minute, mask, enabled ->
+                        SubjectStudyReminder.save(
+                            context = context,
+                            subjectId = subject.id,
+                            subjectName = subject.name,
+                            hour = hour,
+                            minute = minute,
+                            daysMask = mask,
+                            enabled = enabled
+                        )
+                    }
+                )
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubjectReminderItem(
+    subject: SubjectEntity,
+    days: List<String>,
+    onSave: (Int, Int, Int, Boolean) -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val saved = remember(subject.id) {
+        SubjectStudyReminder.getSchedule(context, subject.id)
+    }
+
+    var hour by remember(subject.id) {
+        mutableStateOf((saved?.hour ?: 18).toString())
+    }
+    var minute by remember(subject.id) {
+        mutableStateOf((saved?.minute ?: 0).toString().padStart(2, '0'))
+    }
+    var dayMask by remember(subject.id) {
+        mutableIntStateOf(saved?.daysMask ?: 127)
+    }
+    var enabled by remember(subject.id) {
+        mutableStateOf(saved?.enabled ?: false)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                subject.name,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Switch(
+                checked = enabled,
+                onCheckedChange = { enabled = it }
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = hour,
+                onValueChange = { hour = it.filter(Char::isDigit).take(2) },
+                label = { Text("Hour") },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            Text(":")
+            OutlinedTextField(
+                value = minute,
+                onValueChange = { minute = it.filter(Char::isDigit).take(2) },
+                label = { Text("Minute") },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Text("Repeat on", style = MaterialTheme.typography.labelLarge)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            days.forEachIndexed { index, day ->
+                val bit = 1 shl index
+                FilterChip(
+                    selected = (dayMask and bit) != 0,
+                    onClick = {
+                        dayMask = dayMask xor bit
+                    },
+                    label = { Text(day, fontSize = 10.sp) }
+                )
+            }
+        }
+
+        Button(
+            onClick = {
+                val h = hour.toIntOrNull()
+                val m = minute.toIntOrNull()
+
+                if (h != null && m != null &&
+                    h in 0..23 && m in 0..59 && dayMask != 0
+                ) {
+                    onSave(h, m, dayMask, enabled)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Save ${subject.name} Reminder")
+        }
+    }
+}
+
