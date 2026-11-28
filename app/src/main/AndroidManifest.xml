@@ -26,6 +26,14 @@
 
         <receiver
             android:name=".reminder.DailyGoalReminderReceiver"
+                    <receiver
+            android:name=".reminder.DailyGoalReminderBootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
             android:exported="false" />
 
                 <receiver
