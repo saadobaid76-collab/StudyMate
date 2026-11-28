@@ -985,6 +985,7 @@ private fun MoreScreen(
     val totalBreak = sessions.sumOf { it.breakMinutes }
 
     ContentColumn {
+        SubjectReminderSettings(subjects = subjects)
         Text("Insights & Vault", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("Your study records, results and preferences.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
